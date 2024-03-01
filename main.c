@@ -17,6 +17,16 @@ void execute_shell_builtin(char *args[], int counter);
 void execute_command(char *args[], int background);
 void removeQuotes(char *input);
 
+/*
+TODO:
+-Fix error segmentation fault when ls in root directory
+-Finish export method
+-Finish evaluate_expression method
+-Fix "Error Occured" when exit the program
+-Fix flushing stdin, like sequence of (firefox->ls->(close firefox GUI)) this prints ls without typing the commmand again
+-Add more styling to the shell (like the prompt style)
+-Refactor code
+*/
 int main(){
     register_child_signal();
     setup_environment();
@@ -30,7 +40,7 @@ void shell() {
     do {
         char input[MAX_LENGTH];
         counter=0;
-        fflush(stdin); 
+        // fflush(stdin); 
         fgets(input, sizeof(input), stdin);
 
         if (input[strlen(input) - 1] == '\n') {
