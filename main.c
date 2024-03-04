@@ -18,9 +18,10 @@ void execute_command(char *args[], int background);
 void parse_input(char *input, char *args[], int *counter, int *is_background);
 /*
 TODO:
+-handle background command input correctly, firefox opens tab named ("&")
 -Finish export method
 -Finish evaluate_expression method
--Fix "Error Occured" when exit the program
+-Fix "Error Occured" when exit the program (# Ensure that usage of system call exit() is correct)
 -Fix flushing stdin, like sequence of (firefox->ls->(close firefox GUI)) this prints ls without typing the commmand again
 -Add more styling to the shell (like the prompt style)
 -Refactor code
@@ -93,6 +94,9 @@ void execute_shell_builtin(char* args[], int counter){
     }
 }
 void execute_command(char *args[],int background){
+    if (strcmp(args[0],"exit")==0){
+        exit(0);
+    }
     int pid = fork();
     if (pid==0){
         // child process
@@ -114,6 +118,10 @@ void parse_input(char *input, char *args[], int *counter, int *is_background) {
         // Skip leading spaces
         while (*token == ' ') {
             token++;
+            if (*token=='&'){
+                *is_background=1;
+                token++;
+            }
         }
 
         if (*token == '\"') {
@@ -123,9 +131,6 @@ void parse_input(char *input, char *args[], int *counter, int *is_background) {
             token++;
         } else {
             // Start of unquoted argument
-            if (*token=='&'){
-                *is_background=1;
-            }
             args[*counter] = token;
         }
 
