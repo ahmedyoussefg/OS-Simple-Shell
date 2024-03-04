@@ -15,11 +15,9 @@ void shell();
 void setup_environment();
 void execute_shell_builtin(char *args[], int counter);
 void execute_command(char *args[], int background);
-void removeQuotes(char *input);
-
+void parse_input(char *input, char *args[], int *counter, int *is_background);
 /*
 TODO:
--Fix error segmentation fault when ls in root directory
 -Finish export method
 -Finish evaluate_expression method
 -Fix "Error Occured" when exit the program
@@ -46,17 +44,10 @@ void shell() {
         if (input[strlen(input) - 1] == '\n') {
             input[strlen(input) - 1] = '\0';
         }
-        char *token = strtok(input, " ");
-        int is_background=0;
-        while (token != NULL) {
-            if (strcmp(token,"&")==0){
-                is_background=1;
-            }
-            removeQuotes(token);
-            args[counter++]=token;
-            token = strtok(NULL, " ");
-        }
-        args[counter++]=NULL;
+        
+        int is_background = 0;
+        parse_input(input, args, &counter, &is_background);
+
         int shell_built_in=0;
 
         if(strcmp(args[0],"cd")==0||strcmp(args[0],"export")==0 || strcmp(args[0],"echo")==0){
@@ -88,7 +79,12 @@ void execute_shell_builtin(char* args[], int counter){
     }
     else if (strcmp(args[0],"echo")==0){
         for (int i =1;i<counter-1;i++){
-            printf("%s",args[i]);
+            if (args[i][0]=='\"'){
+                int length=strlen(args[i]);
+                for (int j=1;j<length-1;j++){
+                    printf("%c",args[i][j]);
+                }
+            }
         }
         printf("\n");
     }
@@ -101,7 +97,7 @@ void execute_command(char *args[],int background){
     if (pid==0){
         // child process
         if(execvp(args[0], args)==-1){
-            printf("Error occured.");
+            printf("Error occured.\n");
         }
     }
     else if (!background) {
@@ -109,6 +105,51 @@ void execute_command(char *args[],int background){
         int status;
         waitpid(pid,&status,0);
     }
+}
+void parse_input(char *input, char *args[], int *counter, int *is_background) {
+    char *token = input;
+    int in_quotes = 0;
+
+    while (*token != '\0') {
+        // Skip leading spaces
+        while (*token == ' ') {
+            token++;
+        }
+
+        if (*token == '\"') {
+            // Start of quoted argument
+            in_quotes = 1;
+            args[*counter] = token;
+            token++;
+        } else {
+            // Start of unquoted argument
+            if (*token=='&'){
+                *is_background=1;
+            }
+            args[*counter] = token;
+        }
+
+        // Find the end of the argument
+        while (*token != '\0' && ((*token != ' ' && !in_quotes) || in_quotes)) {
+            if(*token == '\"' && in_quotes){
+                in_quotes=0;
+                token++;
+                break;
+            }
+            token++;
+        }
+
+        // Null-terminate the argument
+        if (*token != '\0') {
+            *token = '\0';
+            token++;
+        }
+
+        // Move to the next argument
+        (*counter)++;
+
+    }
+    args[(*counter)++]=NULL;
 }
 void setup_environment(){
     // go to home directory
@@ -124,7 +165,8 @@ void reap_child_zombie(){
     waitpid(getpid(),&status,0);
 }
 void write_to_log_file(char * log_msg){
-    FILE *log_file=fopen("shell_logfile.txt", "a");
+    char *path= "/media/go3rany/Local Disk/CSE - Department/Level 2/Second Semester/Operating Systems/Labs/Lab 1/repo/shell_logs.txt";
+    FILE *log_file=fopen(path, "a");
     fprintf(log_file,"%s",log_msg);
     fclose(log_file);
 }
@@ -134,21 +176,4 @@ void on_child_exit(){
 }
 void register_child_signal(){
     signal(SIGCHLD, on_child_exit);
-}
-void removeQuotes(char *input) {
-    char *src = input;
-    char *dst = input;
-
-    // Iterate through each character in the string
-    while (*src != '\0') {
-        // If the character is not a double quote, copy it to the destination
-        if (*src != '"') {
-            *dst = *src;
-            dst++;
-        }
-        src++;
-    }
-
-    // Null-terminate the modified string
-    *dst = '\0';
 }
