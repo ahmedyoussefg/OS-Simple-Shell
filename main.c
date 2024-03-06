@@ -96,6 +96,7 @@ void execute_shell_builtin(char* args[], int counter){
 void execute_command(char *args[],int background){
     if (strcmp(args[0],"exit")==0){
         exit(0);
+        return;
     }
     int pid = fork();
     if (pid==0){
@@ -170,7 +171,7 @@ void reap_child_zombie(){
     waitpid(getpid(),&status,0);
 }
 void write_to_log_file(char * log_msg){
-    char *path= "/media/go3rany/Local Disk/CSE - Department/Level 2/Second Semester/Operating Systems/Labs/Lab 1/repo/shell_logs.txt";
+    char *path= "/home/go3rany/CSED/Second Level/Second Semester/OS/Labs/Lab 1/Repo/OS-Simple-Shell/shell_logfile.txt";
     FILE *log_file=fopen(path, "a");
     fprintf(log_file,"%s",log_msg);
     fclose(log_file);
