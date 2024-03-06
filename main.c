@@ -21,7 +21,6 @@ TODO:
 -handle background command input correctly, firefox opens tab named ("&")
 -Finish export method
 -Finish evaluate_expression method
--Fix "Error Occured" when exit the program (# Ensure that usage of system call exit() is correct)
 -Fix flushing stdin, like sequence of (firefox->ls->(close firefox GUI)) this prints ls without typing the commmand again
 -Add more styling to the shell (like the prompt style)
 -Refactor code

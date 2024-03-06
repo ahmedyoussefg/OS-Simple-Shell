@@ -2,6 +2,7 @@
 test.c
 test
 main
+shell_logfile.txt
 
 # Prerequisites
 *.d
