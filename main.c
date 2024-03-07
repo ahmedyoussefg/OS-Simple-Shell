@@ -62,16 +62,19 @@ void shell()
         parse_input(input, args, &counter, &is_background);
 
         int shell_built_in = 0;
+        //  To see current variables' values
+        // for (int i=0;i<variables_count;i++){
+        //     printf("Variable %s = %s\n", variables[i], values[i]);
+        // }
+        
         if (args[0] == NULL)
             continue;
         if (strcmp(args[0], "cd") == 0 || strcmp(args[0], "export") == 0 || strcmp(args[0], "echo") == 0)
         {
             shell_built_in = 1;
         }
-        if (strcmp(args[0], "echo") == 0)
-        {
+        if (counter >= 3)
             evaluate_expression(args, counter);
-        }
         if (shell_built_in)
         {
             execute_shell_builtin(args, counter);
@@ -92,60 +95,59 @@ void evaluate_expression(char *args[], int counter)
     char *result = NULL;
     for (int i = 1; i < counter - 1; i++)
     {
-        if (args[i][0] == '\"')
+        int length = strlen(args[i]);
+        char *new_arg = (char *)malloc(MAX_LENGTH);
+        if (new_arg == NULL)
         {
-            int length = strlen(args[i]);
-            char *new_arg = (char *)malloc(MAX_LENGTH);
-            if (new_arg == NULL)
+            fprintf(stderr, "Memory allocation failed\n");
+            exit(EXIT_FAILURE);
+        }
+        new_arg[0] = '\0'; // Initialize the new argument as an empty string
+        int flag = (args[i][0]==args[i][length-1]) && args[i][0]=='\"';
+        for (int j = flag; j < length-flag; j++)
+        {   
+            if (args[i][j] == '$')
             {
-                fprintf(stderr, "Memory allocation failed\n");
-                exit(EXIT_FAILURE);
-            }
-            new_arg[0] = '\0'; // Initialize the new argument as an empty string
-
-            for (int j = 1; j < length - 1; j++)
-            {
-                if (args[i][j] == '$')
+                expression = (char *)malloc(MAX_LENGTH);
+                if (expression == NULL)
                 {
-                    expression = (char *)malloc(MAX_LENGTH);
-                    if (expression == NULL)
-                    {
-                        fprintf(stderr, "Memory allocation failed\n");
-                        exit(1);
-                    }
-                    int k = 0;
-                    j++; // Move to the character after '$'
-                    while (args[i][j] != ' ' && args[i][j] != '\0' && j < length - 1)
-                    {
-                        expression[k++] = args[i][j++];
-                    }
-                    expression[k] = '\0';
-                    // Get the value of the variable
-                    result = getHashValue(expression);
-                    if (result != NULL)
-                    {
-                        // Replace the variable in the expression with its value
-                        strcat(new_arg, result); // Append the value to the new argument
-                        strcat(new_arg, " ");
-                        free(result); // Free the memory allocated by getHashValue
-                    }
-                    else
-                    {
-                        // leave the variable unchanged
-                        // Append the variable name to the new argument with "$" at the beginning
-                        char temp[MAX_LENGTH];
-                        snprintf(temp, sizeof(temp), "$%s", expression);
-                        strcat(new_arg, temp);
-                    }
-                    free(expression); // Free the memory allocated for the expression
+                    fprintf(stderr, "Memory allocation failed\n");
+                    exit(1);
+                }
+                int k = 0;
+                j++; // Move to the character after '$'
+                while (args[i][j] != ' ' && args[i][j] != '\0' && (j < length-flag))
+                {
+                    expression[k++] = args[i][j++];
+                }
+                expression[k] = '\0';
+                // Get the value of the variable
+                result = getHashValue(expression);
+                if (result != NULL)
+                {
+                    // Replace the variable in the expression with its value
+                    strcat(new_arg, result); // Append the value to the new argument
+                    strcat(new_arg, " ");
+                    free(result); // Free the memory allocated by getHashValue
                 }
                 else
                 {
-                    char temp[2] = {args[i][j], '\0'};
+                    // leave the variable unchanged
+                    // Append the variable name to the new argument with "$" at the beginning
+                    char temp[MAX_LENGTH];
+                    snprintf(temp, sizeof(temp), "$%s ", expression);
                     strcat(new_arg, temp);
                 }
+                free(expression); // Free the memory allocated for the expression
             }
-            // Update args[i] with the new argument
+            else
+            {
+                char temp[2] = {args[i][j], '\0'};
+                strcat(new_arg, temp);
+            }
+        }
+        // Update args[i] with the new argument
+        if (flag){
             char *quoted_new_arg = (char *)malloc(strlen(new_arg) + 3); // +3 for the two quotes and null terminator
             if (quoted_new_arg == NULL)
             {
@@ -156,6 +158,9 @@ void evaluate_expression(char *args[], int counter)
             strcpy(args[i],quoted_new_arg);
             free(quoted_new_arg);
         }
+        else 
+            strcpy(args[i],new_arg);
+        free(new_arg);
     }
 }
 /// @brief Execute of the commands {cd,export,echo}
@@ -272,9 +277,29 @@ void execute_command(char *args[], int background)
     if (pid == 0)
     {
         // child process
-        if (execvp(args[0], args) == -1)
+
+        // Allocate memory for args2
+        char *args2[MAX_LENGTH]; 
+        int args2_index = 0;
+
+        // Tokenize each argument and add tokens to args2
+        for (int i = 0; args[i] != NULL; ++i)
         {
-            printf(ANSI_COLOR_RED "Error occured.\n" ANSI_COLOR_RESET);
+            char *token = strtok(args[i], " ");
+            while (token != NULL)
+            {
+                args2[args2_index++] = strdup(token);
+                token = strtok(NULL, " ");
+            }
+        }
+
+        // Null-terminate args2
+        args2[args2_index] = NULL;
+
+        // Execute the command with the new arguments
+        if (execvp(args2[0], args2) == -1)
+        {
+            printf(ANSI_COLOR_RED "Error occurred.\n" ANSI_COLOR_RESET);
             exit(1);
         }
     }
