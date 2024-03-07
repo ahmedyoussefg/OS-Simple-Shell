@@ -26,6 +26,7 @@ void execute_shell_builtin(char *args[], int counter);
 void execute_command(char *args[], int background);
 void parse_input(char *input, char *args[], int *counter, int *is_background);
 void replace_home_with_tilde(char *cwd);
+void clear_terminal();
 /*
 TODO:
 -Finish export method
@@ -42,6 +43,7 @@ void shell() {
     char *command="";
     char *args[MAX_LENGTH];
     int counter =0;
+    clear_terminal();
     do {
         char input[MAX_LENGTH];
         counter=0;
@@ -105,7 +107,8 @@ void execute_command(char *args[],int background){
     if (pid==0){
         // child process
         if(execvp(args[0], args)==-1){
-            printf("Error occured.\n");
+            printf(ANSI_COLOR_RED "Error occured.\n" ANSI_COLOR_RESET);
+            exit(1);
         }
     }
     else if (!background) {
@@ -222,3 +225,7 @@ void replace_home_with_tilde(char *cwd) {
         memmove(cwd + 1, cwd + strlen(home), strlen(cwd) - strlen(home) + 1);
     }
 };
+void clear_terminal() {
+    printf("\033[2J");  // ANSI escape code for clearing the screen
+    printf("\033[H");   // Move the cursor to the home position
+}
