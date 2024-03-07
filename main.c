@@ -34,10 +34,6 @@ char *variables[MAX_LENGTH];
 char *values[MAX_LENGTH];
 int variables_count=0;
 
-/*
-TODO:
--Refactor code
-*/
 int main(){
     register_child_signal();
     setup_environment();
@@ -62,9 +58,12 @@ void shell() {
         parse_input(input, args, &counter, &is_background);
 
         int shell_built_in=0;
+        /* To see current variables' values
         for (int i=0;i<variables_count;i++){
             printf("Variable %s = %s\n", variables[i], values[i]);
         }
+        */
+        if (args[0]==NULL)continue;
         if(strcmp(args[0],"cd")==0||strcmp(args[0],"export")==0 || strcmp(args[0],"echo")==0){
             shell_built_in=1;
         }
@@ -78,7 +77,7 @@ void shell() {
             execute_command(args,is_background);
         }
     }
-    while(strcmp(args[0],"exit")!=0);
+    while(1);
 }
 void evaluate_expression(char *args[], int counter) {
     char *expression = NULL;
