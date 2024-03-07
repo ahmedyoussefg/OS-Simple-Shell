@@ -27,11 +27,15 @@ void execute_command(char *args[], int background);
 void parse_input(char *input, char *args[], int *counter, int *is_background);
 void replace_home_with_tilde(char *cwd);
 void clear_terminal();
+void evaluate_expression(char *args[], int counter);
+char * getHashValue(char *key);
+
+char *variables[MAX_LENGTH];
+char *values[MAX_LENGTH];
+int variables_count=0;
 
 /*
 TODO:
--Finish export method
--Finish evaluate_expression method
 -Refactor code
 */
 int main(){
@@ -58,12 +62,15 @@ void shell() {
         parse_input(input, args, &counter, &is_background);
 
         int shell_built_in=0;
-
+        for (int i=0;i<variables_count;i++){
+            printf("Variable %s = %s\n", variables[i], values[i]);
+        }
         if(strcmp(args[0],"cd")==0||strcmp(args[0],"export")==0 || strcmp(args[0],"echo")==0){
             shell_built_in=1;
         }
-        
-        // evaluate_expression():
+        if (strcmp(args[0], "echo")==0){
+            evaluate_expression(args, counter);
+        }
         if (shell_built_in){
             execute_shell_builtin(args, counter);
         }
@@ -73,7 +80,68 @@ void shell() {
     }
     while(strcmp(args[0],"exit")!=0);
 }
+void evaluate_expression(char *args[], int counter) {
+    char *expression = NULL;
+    char *result = NULL;
+    for (int i =1;i<counter-1;i++){
+        if (args[i][0]=='\"'){
+            int length=strlen(args[i]);
+            char *new_arg = (char *)malloc(MAX_LENGTH);
+            if (new_arg == NULL) {
+                fprintf(stderr, "Memory allocation failed\n");
+                exit(EXIT_FAILURE);
+            }
+            new_arg[0] = '\0';  // Initialize the new argument as an empty string
 
+            for (int j=1;j<length-1;j++){
+                // printf("%c",args[i][j]);
+                if (args[i][j]=='$'){
+                    // make algorithm to put every character till space or '\0' inside char *
+                    //  take this char * and replace it with its hash value
+                    expression = (char *)malloc(MAX_LENGTH);
+                    if (expression == NULL) {
+                        fprintf(stderr, "Memory allocation failed\n");
+                        exit(1);
+                    }
+                    int k = 0;
+                    j++;  // Move to the character after '$'
+                    while (args[i][j] != ' ' && args[i][j] != '\0' && j<length-1) {
+                        expression[k++] = args[i][j++];
+                    }
+                    expression[k] = '\0';
+                                        // Get the value of the variable
+                    result = getHashValue(expression);
+                    if (result != NULL) {
+                        // Replace the variable in the expression with its value
+                        strcat(new_arg, result);  // Append the value to the new argument
+                        strcat(new_arg, " ");
+                        free(result);  // Free the memory allocated by getHashValue
+                    } else {
+                        // leave the variable unchanged
+    
+                        // Append the variable name to the new argument with "$" at the beginning
+                        char temp[MAX_LENGTH];
+                        snprintf(temp, sizeof(temp), "$%s", expression);
+                        strcat(new_arg, temp);
+                    }
+                    free(expression);  // Free the memory allocated for the expression
+
+                }else {
+                    char temp[2] = {args[i][j], '\0'};
+                    strcat(new_arg, temp);
+                }
+            }
+            // Update args[i] with the new argument
+            char *quoted_new_arg = (char *)malloc(strlen(new_arg) + 3);  // +3 for the two quotes and null terminator
+            if (quoted_new_arg == NULL) {
+                fprintf(stderr, "Memory allocation failed\n");
+                exit(EXIT_FAILURE);
+            }
+            sprintf(quoted_new_arg, "\"%s\"", new_arg);
+            args[i] = quoted_new_arg;
+        }
+    }
+}
 void execute_shell_builtin(char* args[], int counter){
     if(strcmp(args[0],"cd")==0){
         if (counter ==2 ) { // case "cd"
@@ -96,7 +164,38 @@ void execute_shell_builtin(char* args[], int counter){
         printf("\n");
     }
     else if(strcmp(args[0],"export")==0){
-        // handle export
+        if (counter == 2 ) return;
+        char *assignment = (char *)malloc(MAX_LENGTH);
+        if (assignment != NULL) {
+            strcpy(assignment, args[1]);
+        } else {
+            // Memory allocation failed
+            fprintf(stderr, "Error in Memory Allocation\n");
+            return;
+        }
+        char *equal_sign = strchr(assignment, '=');
+
+        if (equal_sign != NULL) {
+            *equal_sign = '\0'; // Replace '=' with null terminator
+            variables[variables_count] = assignment;
+            values[variables_count] = equal_sign + 1; // Move to the character after '='
+
+            // Check and skip leading double quote
+            if (*values[variables_count] == '\"') {
+                values[variables_count]++;
+            }
+
+            // Check and skip trailing double quote
+            size_t rhs_length = strlen(values[variables_count]);
+            if (rhs_length > 0 && values[variables_count][rhs_length - 1] == '\"') {
+                values[variables_count][rhs_length - 1] = '\0'; // Remove the trailing double quote
+            }
+        } else {
+            variables[variables_count] = ""; // No '=' found, set an empty string for LHS
+            values[variables_count] = ""; // Set an empty string for RHS
+        }
+
+        variables_count++;
     }
 }
 void execute_command(char *args[],int background){
@@ -232,4 +331,20 @@ void replace_home_with_tilde(char *cwd) {
 void clear_terminal() {
     printf("\033[2J");  // ANSI escape code for clearing the screen
     printf("\033[H");   // Move the cursor to the home position
+}
+char * getHashValue(char *key){
+    for (int i =0;i <variables_count;i++){
+        if (strcmp(key,variables[i])==0){
+            char *ret = (char *)malloc(strlen(values[i]) + 1);
+            if (ret != NULL) {
+                strcpy(ret, values[i]);
+                return ret;
+            } else {
+                // Memory allocation failed
+                return NULL;
+            }
+        }
+    }
+    // variable not found
+    return NULL;
 }
