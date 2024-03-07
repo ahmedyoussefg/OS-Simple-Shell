@@ -18,7 +18,6 @@ void execute_command(char *args[], int background);
 void parse_input(char *input, char *args[], int *counter, int *is_background);
 /*
 TODO:
--handle background command input correctly, firefox opens tab named ("&")
 -Finish export method
 -Finish evaluate_expression method
 -Fix flushing stdin, like sequence of (firefox->ls->(close firefox GUI)) this prints ls without typing the commmand again
@@ -118,10 +117,6 @@ void parse_input(char *input, char *args[], int *counter, int *is_background) {
         // Skip leading spaces
         while (*token == ' ') {
             token++;
-            if (*token=='&'){
-                *is_background=1;
-                token++;
-            }
         }
 
         if (*token == '\"') {
@@ -141,6 +136,11 @@ void parse_input(char *input, char *args[], int *counter, int *is_background) {
                 token++;
                 break;
             }
+            if (*token=='&'){
+                *is_background=1;
+                token++;
+                continue;
+            }
             token++;
         }
 
@@ -149,7 +149,10 @@ void parse_input(char *input, char *args[], int *counter, int *is_background) {
             *token = '\0';
             token++;
         }
-
+        if (strcmp(args[*counter],"&")==0){
+            args[*counter]="";
+            (*counter)--;
+        }
         // Move to the next argument
         (*counter)++;
 
