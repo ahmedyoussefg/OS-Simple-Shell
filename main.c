@@ -30,8 +30,6 @@ void replace_home_with_tilde(char *cwd);
 TODO:
 -Finish export method
 -Finish evaluate_expression method
--Fix flushing stdin, like sequence of (firefox->ls->(close firefox GUI)) this prints ls without typing the commmand again
--Add more styling to the shell (like the prompt style)
 -Refactor code
 */
 int main(){
@@ -69,11 +67,6 @@ void shell() {
         else {
             execute_command(args,is_background);
         }
-        // switch(input_type):
-        //     case shell_builtin:
-        //         execute_shell_bultin();
-        //     case executable_or_error:
-        //         execute_command():
     }
     while(strcmp(args[0],"exit")!=0);
 }
@@ -185,7 +178,10 @@ void reap_child_zombie(){
     waitpid(-1, &status, WNOHANG);
 }
 void write_to_log_file(char * log_msg){
-    char *path= "/home/go3rany/CSED/Second Level/Second Semester/OS/Labs/Lab 1/Repo/OS-Simple-Shell/shell_logfile.txt";
+    char *home = getenv("HOME");
+    char path[256];
+    strcpy(path, home);
+    strcat(path, "/shell_logfile.txt");
     FILE *log_file=fopen(path, "a");
     fprintf(log_file,"%s",log_msg);
     fclose(log_file);
