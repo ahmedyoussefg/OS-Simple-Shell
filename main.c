@@ -7,6 +7,15 @@
 #include <stdlib.h>
 
 #define MAX_LENGTH 500
+#define MAX_PATH_LENGTH 1024
+#define MAX_USERNAME_LENGTH 256
+#define MAX_HOSTNAME_LENGTH 256
+#define ANSI_COLOR_RED     "\x1b[91m"
+#define ANSI_COLOR_GREEN   "\x1b[92m"
+#define ANSI_COLOR_BLUE    "\x1b[94m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
+void print_prompt();
 void register_child_signal();
 void reap_child_zombie();
 void on_child_exit();
@@ -16,6 +25,7 @@ void setup_environment();
 void execute_shell_builtin(char *args[], int counter);
 void execute_command(char *args[], int background);
 void parse_input(char *input, char *args[], int *counter, int *is_background);
+void replace_home_with_tilde(char *cwd);
 /*
 TODO:
 -Finish export method
@@ -37,6 +47,7 @@ void shell() {
     do {
         char input[MAX_LENGTH];
         counter=0;
+        print_prompt();
         fgets(input, sizeof(input), stdin);
         if (input[strlen(input) - 1] == '\n') {
             input[strlen(input) - 1] = '\0';
@@ -69,6 +80,9 @@ void shell() {
 
 void execute_shell_builtin(char* args[], int counter){
     if(strcmp(args[0],"cd")==0){
+        if (counter ==2 ) { // case "cd"
+            return;
+        }
         if(strcmp(args[1],"~")==0){
             args[1]= getenv("HOME");
         }
@@ -183,3 +197,32 @@ void on_child_exit(){
 void register_child_signal(){
     signal(SIGCHLD, on_child_exit);
 }
+void print_prompt() {
+    char username[MAX_USERNAME_LENGTH];
+    char hostname[MAX_HOSTNAME_LENGTH];
+    char cwd[MAX_PATH_LENGTH];
+
+    // Get username
+    getlogin_r(username, MAX_USERNAME_LENGTH);
+
+    // Get hostname
+    gethostname(hostname, MAX_HOSTNAME_LENGTH);
+
+    // Get current working directory
+    getcwd(cwd, sizeof(cwd));
+    replace_home_with_tilde(cwd);
+    // Print the stylish prompt
+    printf(ANSI_COLOR_RED "[%s] " ANSI_COLOR_GREEN "%s@%s:" ANSI_COLOR_BLUE "%s" ANSI_COLOR_RESET "$ ",
+           "SimpleShell", username, hostname, cwd);
+    fflush(stdout);
+}
+void replace_home_with_tilde(char *cwd) {
+    char *home = getenv("HOME");  // Get the home directory from the environment
+
+    // Check if the home directory is a prefix of the current working directory
+    if (strncmp(cwd, home, strlen(home)) == 0) {
+        // Replace the home directory with ~ in the current working directory
+        memmove(cwd, "~", 1);
+        memmove(cwd + 1, cwd + strlen(home), strlen(cwd) - strlen(home) + 1);
+    }
+};
