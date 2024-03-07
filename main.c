@@ -39,7 +39,8 @@ int main()
     setup_environment();
     shell();
 }
-
+ 
+/// @brief Function that controls the flow of the program
 void shell()
 {
     char *command = "";
@@ -86,6 +87,10 @@ void shell()
         }
     } while (1);
 }
+/// @brief Function replaces every $var with its value
+///        if there is no variable with the name given, it leaves it as it is
+/// @param args : the arguments given by the user
+/// @param counter : length of args
 void evaluate_expression(char *args[], int counter)
 {
     char *expression = NULL;
@@ -161,6 +166,9 @@ void evaluate_expression(char *args[], int counter)
         }
     }
 }
+/// @brief Execute of the commands {cd,export,echo}
+/// @param args : the arguments entered by the user
+/// @param counter : length of args
 void execute_shell_builtin(char *args[], int counter)
 {
     if (strcmp(args[0], "cd") == 0)
@@ -235,6 +243,9 @@ void execute_shell_builtin(char *args[], int counter)
         variables_count++;
     }
 }
+/// @brief Function executes non-builtin shell commands
+/// @param args   : The arguments input by user
+/// @param background  : boolean =1 if the commanad should be executed in background, 0 instead
 void execute_command(char *args[], int background)
 {
     if (strcmp(args[0], "exit") == 0)
@@ -259,6 +270,12 @@ void execute_command(char *args[], int background)
         waitpid(pid, &status, 0);
     }
 }
+/// @brief Function parses the input by the user and splits them into array of args
+/// @param input : the string input by the user
+/// @param args : the array being built
+/// @param counter : it is length of args, so initially it's = zero
+/// @param is_background the function also checks if the command entered by the user 
+///                      should be executed in background or not
 void parse_input(char *input, char *args[], int *counter, int *is_background)
 {
     char *token = input;
@@ -324,6 +341,7 @@ void parse_input(char *input, char *args[], int *counter, int *is_background)
     }
     args[(*counter)++] = NULL;
 }
+/// @brief Function setups the environment for user. Currently it only makes the entry point be $HOME
 void setup_environment()
 {
     // go to home directory
@@ -335,11 +353,14 @@ void setup_environment()
     else
         chdir(".");
 }
+/// @brief Function kills zombie children by calling waitpid on them
 void reap_child_zombie()
 {
     int status;
     waitpid(-1, &status, WNOHANG);
 }
+/// @brief Function writes (appends) the log msg to file in $HOME
+/// @param log_msg : The message to be writted
 void write_to_log_file(char *log_msg)
 {
     char *home = getenv("HOME");
@@ -350,15 +371,18 @@ void write_to_log_file(char *log_msg)
     fprintf(log_file, "%s", log_msg);
     fclose(log_file);
 }
+/// @brief Interrupt handler executed when child exit (SIGCHLD signal), it calls reap child zombie and write to log file
 void on_child_exit()
 {
     reap_child_zombie();
     write_to_log_file("Child terminated\n");
 }
+/// @brief Function that registers the interrupt with signal SIGCHLD, it calls back on_child_exit if interrupt occured
 void register_child_signal()
 {
     signal(SIGCHLD, on_child_exit);
 }
+/// @brief Function defines the style of prompt to input
 void print_prompt()
 {
     char username[MAX_USERNAME_LENGTH];
@@ -379,6 +403,8 @@ void print_prompt()
            "SimpleShell", username, hostname, cwd);
     fflush(stdout);
 }
+/// @brief Function replaces /home/{USER} with ~
+/// @param cwd : current working directory string
 void replace_home_with_tilde(char *cwd)
 {
     char *home = getenv("HOME"); // Get the home directory from the environment
@@ -391,11 +417,13 @@ void replace_home_with_tilde(char *cwd)
         memmove(cwd + 1, cwd + strlen(home), strlen(cwd) - strlen(home) + 1);
     }
 };
+/// @brief Function clears terminal
 void clear_terminal()
 {
     printf("\033[2J"); // ANSI escape code for clearing the screen
     printf("\033[H");  // Move the cursor to the home position
 }
+/// @brief function returns hash value of stored variable, else returns NULL.
 char *getHashValue(char *key)
 {
     for (int i = 0; i < variables_count; i++)
