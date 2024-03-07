@@ -27,6 +27,7 @@ void execute_command(char *args[], int background);
 void parse_input(char *input, char *args[], int *counter, int *is_background);
 void replace_home_with_tilde(char *cwd);
 void clear_terminal();
+
 /*
 TODO:
 -Finish export method
@@ -143,6 +144,9 @@ void parse_input(char *input, char *args[], int *counter, int *is_background) {
                 in_quotes=0;
                 token++;
                 break;
+            }
+            if (*token == '\"'){
+                in_quotes=1;token++;
             }
             if (*token=='&'){
                 *is_background=1;

@@ -3,6 +3,7 @@ test.c
 test
 main
 shell_logfile.txt
+tempCodeRunnerFile.c
 
 # Prerequisites
 *.d
