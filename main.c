@@ -37,9 +37,7 @@ void shell() {
     do {
         char input[MAX_LENGTH];
         counter=0;
-        // fflush(stdin); 
         fgets(input, sizeof(input), stdin);
-
         if (input[strlen(input) - 1] == '\n') {
             input[strlen(input) - 1] = '\0';
         }
@@ -170,7 +168,7 @@ void setup_environment(){
 }
 void reap_child_zombie(){
     int status;
-    waitpid(getpid(),&status,0);
+    waitpid(-1, &status, WNOHANG);
 }
 void write_to_log_file(char * log_msg){
     char *path= "/home/go3rany/CSED/Second Level/Second Semester/OS/Labs/Lab 1/Repo/OS-Simple-Shell/shell_logfile.txt";
