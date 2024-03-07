@@ -28,6 +28,7 @@ void replace_home_with_tilde(char *cwd);
 void clear_terminal();
 void evaluate_expression(char *args[], int counter);
 char *getHashValue(char *key);
+void print_prompt();
 
 char *variables[MAX_LENGTH];
 char *values[MAX_LENGTH];
@@ -43,7 +44,6 @@ int main()
 /// @brief Function that controls the flow of the program
 void shell()
 {
-    char *command = "";
     char *args[MAX_LENGTH];
     int counter = 0;
     clear_terminal();
@@ -62,11 +62,6 @@ void shell()
         parse_input(input, args, &counter, &is_background);
 
         int shell_built_in = 0;
-        /* To see current variables' values
-        for (int i=0;i<variables_count;i++){
-            printf("Variable %s = %s\n", variables[i], values[i]);
-        }
-        */
         if (args[0] == NULL)
             continue;
         if (strcmp(args[0], "cd") == 0 || strcmp(args[0], "export") == 0 || strcmp(args[0], "echo") == 0)
@@ -110,11 +105,8 @@ void evaluate_expression(char *args[], int counter)
 
             for (int j = 1; j < length - 1; j++)
             {
-                // printf("%c",args[i][j]);
                 if (args[i][j] == '$')
                 {
-                    // make algorithm to put every character till space or '\0' inside char *
-                    //  take this char * and replace it with its hash value
                     expression = (char *)malloc(MAX_LENGTH);
                     if (expression == NULL)
                     {
@@ -140,7 +132,6 @@ void evaluate_expression(char *args[], int counter)
                     else
                     {
                         // leave the variable unchanged
-
                         // Append the variable name to the new argument with "$" at the beginning
                         char temp[MAX_LENGTH];
                         snprintf(temp, sizeof(temp), "$%s", expression);
@@ -162,7 +153,8 @@ void evaluate_expression(char *args[], int counter)
                 exit(EXIT_FAILURE);
             }
             sprintf(quoted_new_arg, "\"%s\"", new_arg);
-            args[i] = quoted_new_arg;
+            strcpy(args[i],quoted_new_arg);
+            free(quoted_new_arg);
         }
     }
 }
@@ -177,11 +169,34 @@ void execute_shell_builtin(char *args[], int counter)
         { // case "cd"
             return;
         }
-        if (strcmp(args[1], "~") == 0)
-        {
-            args[1] = getenv("HOME");
+        char *path =(char *) malloc(MAX_PATH_LENGTH);
+ 
+        if (args[1][0]=='\"')args[1]++;
+        if (args[1][0] == '~') {
+            // Replace ~ with $HOME
+            char *home = getenv("HOME");
+            if (home != NULL) {
+                // Allocate memory for the new path
+                path = (char *)malloc(strlen(home) + strlen(args[1]) + 1);
+                if (path != NULL) {
+                    // Concatenate $HOME with the rest of args[1]
+                    strcpy(path, home);
+                    strcat(path, args[1] + 1); // Skip ~ in args[1]
+                } else {
+                    fprintf(stderr, "Memory allocation failed\n");
+                    exit(EXIT_FAILURE);
+                }
+            } else {
+                fprintf(stderr, "HOME environment variable not set\n");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            strcpy(path, args[1]);
         }
-        chdir(args[1]);
+        int len =strlen(path);
+        if (path[len-1]=='\"')
+            path[len-1]='\0';
+        chdir(path);
     }
     else if (strcmp(args[0], "echo") == 0)
     {
