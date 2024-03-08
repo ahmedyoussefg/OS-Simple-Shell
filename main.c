@@ -201,6 +201,8 @@ void execute_shell_builtin(char *args[], int counter)
         int len =strlen(path);
         if (path[len-1]=='\"')
             path[len-1]='\0';
+        if (path[len-1]==' ')
+            path[len-1]='\0';
         chdir(path);
     }
     else if (strcmp(args[0], "echo") == 0)
